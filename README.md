@@ -30,5 +30,5 @@ void Frequence()
 
 int main()
 {
-	Frequence();
+	
 }
