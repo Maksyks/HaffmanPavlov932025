@@ -1,5 +1,5 @@
 # HaffmanPavlov932025
-#include <stdio.h>
+/*#include <stdio.h>
 #include <stdlib.h>
 struct Node //создаем структуру с двумя переменными
 {
@@ -31,4 +31,4 @@ void Frequence()
 int main()
 {
 	
-}
+}*/
