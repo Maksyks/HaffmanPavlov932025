@@ -1,0 +1,194 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <map>
+#include <list>
+#include <fstream>
+using namespace std;
+class Node //создаем структуру с двумя переменными
+{
+public:
+	int n;//число
+	char s;//символ
+	Node* left, * right;
+
+	Node() { left = right = NULL; }
+	//для создания дерева
+	Node(Node* L, Node* R)
+	{//родителю присваиваем левый и правый указатель
+		//числа складываем
+		left = L;
+		right = R;
+		n = L->n + R->n;
+	}
+};
+//функция сортирует по частотам указатели
+struct ListSort
+{
+	bool operator()(const Node* l, const Node* r) const
+	{
+		return l->n < r->n;
+	}
+};
+//Вектор содержит двоичный код элемента
+vector<bool> code;
+//мапа ассоциирует символ с кодом(вектором)
+map<char, vector<bool> > symbol;
+//функция присваивает символам их коды
+void BuildTable(Node* root, map<char, vector<bool> > symbol)
+{
+	/*идем от корня дерева, если слева есть элемент
+	то выводим 0 в вектор*/
+	if (root->left)
+	{ //для левого узла запускаем рекурсию
+		code.push_back(0);
+		BuildTable(root->left, symbol);
+	}//теперь смотрим правую ветку
+	if (root->right)
+	{
+		code.push_back(1);
+		BuildTable(root->right, symbol);
+	}
+	/*если правая и левая ветки не имеют потомка, то выводим символ
+	ассоциируюя с кодом с помощью мапы*/
+	if (((root->right) == NULL) && ((root->left) == NULL))
+	{
+		symbol[root->s] = code;
+	}
+	/*убираем крайний справа символ(0 1) и продолжаем обход
+	так как возвращаемся назад по дереву*/
+	if (!code.empty()) code.pop_back();
+
+}
+void print_vector(vector<bool>code) {
+	for (auto it = code.begin();it != code.end();it++) {
+		cout << *it;
+	}
+	cout << endl;
+}
+
+void print_table(map<char, vector<bool>>& buff) {
+	for (auto it = buff.begin(); it != buff.end(); it++)
+	{
+		cout << it->first << " - ";
+		print_vector(it->second);
+	}
+}
+
+
+int main()
+{
+	const char* Cipher = "Cipher.txt";
+	const char* PlainText = "PlainText.txt";
+	const char* Text = "Text.txt";
+	FILE* input = fopen(Cipher, "rb");
+	if (!input)
+	{
+		puts("HuffmanDecoder ERROR: Have not found input text\n");
+		exit(1);
+	}
+
+	unsigned char key;
+	map<char, int> frequency;
+	unsigned char i = 0;
+	unsigned char j = 0;
+
+	//кол-во уникальных символов
+	if (input != NULL) 
+		j = fgetc(input);
+
+	//создаю мапу с частотами из шапки
+	for(;i!=j;i++)
+	{
+		key = fgetc(input);
+		frequency[key] = fgetc(input);
+	}
+	
+	//вывожу мапу
+	for (auto it = frequency.begin(); it != frequency.end(); it++)
+				cout << it->first << " - " << it->second << endl;
+		
+
+	//создаю список указателей
+	list<Node*> tmp;
+	//используя интератор создаю узлы по мапу
+	for (map<char, int>::iterator itr = frequency.begin(); itr != frequency.end(); ++itr)
+	{
+		Node* p = new Node;//новый узел
+		p->s = itr->first;//символ
+		p->n = itr->second;//его частота
+		tmp.push_back(p);//указатель на узел
+	}
+
+	/*создаем дерево пока не останется 1 символ в списке*/
+	while (tmp.size() != 1)
+	{// сортируем по частотам список
+		tmp.sort(ListSort());
+		//записываем в указатель левый элемент
+		Node* L = tmp.front();
+		tmp.pop_front();//удаляем
+		Node* R = tmp.front();
+		tmp.pop_front();
+		//новый узел с потомками левый правый
+		Node* parent = new Node(L, R);
+		//заносим новый узел в список
+		tmp.push_back(parent);
+	}
+	//заносим корень дерева
+	Node* root = tmp.front();
+	BuildTable(root, symbol);
+	print_table(symbol);
+
+	FILE* output = fopen(PlainText, "wb+");
+	if (!output)
+	{
+		puts("HuffmanDecoder ERROR: Have not found input text\n");
+		exit(1);
+	}
+
+	Node* p = root;
+	unsigned char count = 0;
+	char byte;
+	byte = fgetc(input);
+	
+	//кол-во нужных битов для раскодировки
+	unsigned long long len = root->n;
+	
+	while (byte!=EOF&&len>0)
+	{
+		//идем по строке битов
+		bool b = byte & (1 << (7 - count));
+		//идем по дереву
+		if (b) 
+			p = p->right; 
+		else p = p->left;
+		//выводим лист(символ)
+		if (p->left == NULL && p->right == NULL) 
+		{
+			fputc(p->s, output);
+			p = root;len--;
+		}
+		count++;
+		if (count == 8) 
+		{ count = 0; byte = fgetc(input); }
+	}
+	fseek(output,0, SEEK_SET);
+	FILE* check1 = fopen(PlainText, "r");
+	FILE* check2 = fopen(Text, "r");
+	char ck1, ck2;
+	while (!feof(check1) && !feof(check2))
+	{
+		ck1 = fgetc(check1);
+		ck2 = fgetc(check2);
+		if (ck1 != ck2)
+		{
+			puts("Files not equal\n");
+			
+		}
+		
+	}
+	puts("Files are equal");
+	fclose(input);
+	fclose(output);
+	return 0;
+}
