@@ -4,7 +4,8 @@
 #include <list>
 #include <fstream>
 using namespace std;
-class Node //создаем структуру с двумя переменными
+
+class Node 
 {
 public:
 	int n;//число
@@ -21,6 +22,7 @@ public:
 		n = L->n + R->n;
 	}
 };
+
 //функция сортирует по частотам указатели
 struct ListSort
 {
@@ -29,48 +31,95 @@ struct ListSort
 		return l->n < r->n;
 	}
 };
+
 //Вектор содержит двоичный код элемента
 vector<bool> code;
 //мапа ассоциирует символ с кодом(вектором)
 map<char, vector<bool> > symbol;
+
 //функция присваивает символам их коды
-void BuildTable(Node* root)
-{/*идем от корня дерева, если слева есть элемент
- то выводим 0 в вектор*/
-	if (root->left != NULL)
-	{
+void BuildTable(Node* root, map<char, vector<bool>>& symbol)
+{
+	/*идем от корня дерева, если слева есть элемент
+	то выводим 0 в вектор*/
+	if (root->left)
+	{ //для левого узла запускаем рекурсию
 		code.push_back(0);
-		//для левого узла запускаем рекурсию
-		BuildTable(root->left);
-	}
-	//теперь смотрим правую ветку
-	if (root->right != NULL)
+		BuildTable(root->left, symbol);
+	}//теперь смотрим правую ветку
+	if (root->right) 
 	{
 		code.push_back(1);
-		BuildTable(root->right);
+		BuildTable(root->right, symbol);
 	}
 	/*если правая и левая ветки не имеют потомка, то выводим символ
 	ассоциируюя с кодом с помощью мапы*/
-	if (root->left == NULL && root->right == NULL) 
+	if (((root->right) == NULL) && ((root->left) == NULL))
+	{
 		symbol[root->s] = code;
+	}
+	/*убираем крайний справа символ(0 1) и продолжаем обход
+	так как возвращаемся назад по дереву*/
+	if (!code.empty()) code.pop_back();
+}
 
-	//убираем крайний справа символ(0 1) и продолжаем обход
-	code.pop_back();
+//Функция выводит коды
+void print_vector(vector<bool>code) {
+	for (auto it = code.begin();it != code.end();it++) {
+		cout << *it;
+	}
+	cout << endl;
+}
+//Функция выводи символ-код
+void print_table(map<char, vector<bool>>& buff) {
+	for (auto it = buff.begin(); it != buff.end(); it++)
+	{
+		cout << it->first << " - ";
+		print_vector(it->second);
+	}
+}
+
+//Функция выводит коэф сжатия
+void compressValue(const char* input_text = "Text.txt", const char* output_text = "Cipher.txt")
+{
+	long long file_size = 0;
+	long long compress_size = 0;
+
+	struct stat s1 {};
+	struct stat s2 {};
+
+	if (!stat(input_text, &s1)) {
+		file_size = s1.st_size;
+	}
+	else {
+		perror("STAT ERROR ");
+	}
+	if (!stat(output_text, &s2)) {
+		compress_size = s2.st_size;
+	}
+	else {
+		perror("STAT ERROR ");
+	}
+
+	cout << "\nCompress value is:" << (compress_size + 0.0) / file_size << "\n";
 }
 
 int main()
 {
 	/*открываем файл*/
-	ifstream Text("Text.txt");
-
+	ifstream Text("Text.txt", ios::out );
+	if (!Text.is_open()) { cout << "error"; return 0; }
 	map<char, int> m;
 	//считываем символа пока не конец
 	//считаем частоты
+	unsigned char lett;
 	while (!Text.eof())
-	{//в с записываем переменную
-		char c = Text.get();
-		//записываем число поторений
-		m[c]++;
+	{
+		lett = Text.get();
+		if (!Text.eof()) 
+		{
+			m[lett]++;
+		}
 	}
 
 	//создаю список указателей
@@ -100,8 +149,45 @@ int main()
 	}
 	//заносим корень дерева
 	Node* root = tmp.front();   
-	BuildTable(root);
-
+	BuildTable(root, symbol);
 	
+	// перемещаем указатель снова в начало файла
+	Text.clear(); Text.seekg(0); 
+
+	ofstream Cipher("Cipher.txt", ios::out | ios::binary);
+	if (!Cipher.is_open()) { cout << "error"; return 0; }
+	//кол во уникальных символов
+	char count_letters = m.size();
+	Cipher.put(count_letters);
+	
+	//выводим шапку в зашифрованный файл
+	for (map<char, int>::iterator itr = m.begin(); itr != m.end(); ++itr)
+	{
+		Cipher.put(itr->first);//символ
+		Cipher.put(itr->second);//его частота
+	}
+
+	int count = 0; char buf = 0;
+	Text.clear(); Text.seekg(0);
+	//Вывожу коды символов по 8
+	while (!Text.eof())
+	{
+		char c = Text.get();
+		//берем код символа
+		vector<bool> x = symbol[c];
+		for (int n = 0; n < x.size(); n++)
+		{//зансим по 8
+			buf = buf | x[n] << (7 - count);
+			count++;
+			if (count == 8) { count = 0;   Cipher << buf; buf = 0; }
+		}
+	}
+	if (buf) Cipher<<(buf);
+
+	Cipher.seekp(0);
+	compressValue();	
+	print_table(symbol);
+	Cipher.close();
+	Text.close();
 	return 0;
 }
