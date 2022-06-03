@@ -1,29 +1,28 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
 #include <map>
 #include <list>
 #include <fstream>
 using namespace std;
-
-class Node 
+class Node //создаем структуру с двумя переменными
 {
 public:
-	int n;//С‡РёСЃР»Рѕ
-	char s;//СЃРёРјРІРѕР»
+	int n;//число
+	char s;//символ
 	Node* left, * right;
 
 	Node() { left = right = NULL; }
-	//РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РґРµСЂРµРІР°
+	//для создания дерева
 	Node(Node* L, Node* R)
-	{//СЂРѕРґРёС‚РµР»СЋ РїСЂРёСЃРІР°РёРІР°РµРј Р»РµРІС‹Р№ Рё РїСЂР°РІС‹Р№ СѓРєР°Р·Р°С‚РµР»СЊ
-		//С‡РёСЃР»Р° СЃРєР»Р°РґС‹РІР°РµРј
+	{//родителю присваиваем левый и правый указатель
+		//числа складываем
 		left = L;
 		right = R;
 		n = L->n + R->n;
 	}
 };
-
-//С„СѓРЅРєС†РёСЏ СЃРѕСЂС‚РёСЂСѓРµС‚ РїРѕ С‡Р°СЃС‚РѕС‚Р°Рј СѓРєР°Р·Р°С‚РµР»Рё
+//функция сортирует по частотам указатели
 struct ListSort
 {
 	bool operator()(const Node* l, const Node* r) const
@@ -31,46 +30,43 @@ struct ListSort
 		return l->n < r->n;
 	}
 };
-
-//Р’РµРєС‚РѕСЂ СЃРѕРґРµСЂР¶РёС‚ РґРІРѕРёС‡РЅС‹Р№ РєРѕРґ СЌР»РµРјРµРЅС‚Р°
+//Вектор содержит двоичный код элемента
 vector<bool> code;
-//РјР°РїР° Р°СЃСЃРѕС†РёРёСЂСѓРµС‚ СЃРёРјРІРѕР» СЃ РєРѕРґРѕРј(РІРµРєС‚РѕСЂРѕРј)
+//мапа ассоциирует символ с кодом(вектором)
 map<char, vector<bool> > symbol;
-
-//С„СѓРЅРєС†РёСЏ РїСЂРёСЃРІР°РёРІР°РµС‚ СЃРёРјРІРѕР»Р°Рј РёС… РєРѕРґС‹
-void BuildTable(Node* root, map<char, vector<bool>>& symbol)
+//функция присваивает символам их коды
+void BuildTable(Node* root, map<char, vector<bool> > symbol)
 {
-	/*РёРґРµРј РѕС‚ РєРѕСЂРЅСЏ РґРµСЂРµРІР°, РµСЃР»Рё СЃР»РµРІР° РµСЃС‚СЊ СЌР»РµРјРµРЅС‚
-	С‚Рѕ РІС‹РІРѕРґРёРј 0 РІ РІРµРєС‚РѕСЂ*/
+	/*идем от корня дерева, если слева есть элемент
+	то выводим 0 в вектор*/
 	if (root->left)
-	{ //РґР»СЏ Р»РµРІРѕРіРѕ СѓР·Р»Р° Р·Р°РїСѓСЃРєР°РµРј СЂРµРєСѓСЂСЃРёСЋ
+	{ //для левого узла запускаем рекурсию
 		code.push_back(0);
 		BuildTable(root->left, symbol);
-	}//С‚РµРїРµСЂСЊ СЃРјРѕС‚СЂРёРј РїСЂР°РІСѓСЋ РІРµС‚РєСѓ
-	if (root->right) 
+	}//теперь смотрим правую ветку
+	if (root->right)
 	{
 		code.push_back(1);
 		BuildTable(root->right, symbol);
 	}
-	/*РµСЃР»Рё РїСЂР°РІР°СЏ Рё Р»РµРІР°СЏ РІРµС‚РєРё РЅРµ РёРјРµСЋС‚ РїРѕС‚РѕРјРєР°, С‚Рѕ РІС‹РІРѕРґРёРј СЃРёРјРІРѕР»
-	Р°СЃСЃРѕС†РёРёСЂСѓСЋСЏ СЃ РєРѕРґРѕРј СЃ РїРѕРјРѕС‰СЊСЋ РјР°РїС‹*/
+	/*если правая и левая ветки не имеют потомка, то выводим символ
+	ассоциируюя с кодом с помощью мапы*/
 	if (((root->right) == NULL) && ((root->left) == NULL))
 	{
 		symbol[root->s] = code;
 	}
-	/*СѓР±РёСЂР°РµРј РєСЂР°Р№РЅРёР№ СЃРїСЂР°РІР° СЃРёРјРІРѕР»(0 1) Рё РїСЂРѕРґРѕР»Р¶Р°РµРј РѕР±С…РѕРґ
-	С‚Р°Рє РєР°Рє РІРѕР·РІСЂР°С‰Р°РµРјСЃСЏ РЅР°Р·Р°Рґ РїРѕ РґРµСЂРµРІСѓ*/
+	/*убираем крайний справа символ(0 1) и продолжаем обход
+	так как возвращаемся назад по дереву*/
 	if (!code.empty()) code.pop_back();
-}
 
-//Р¤СѓРЅРєС†РёСЏ РІС‹РІРѕРґРёС‚ РєРѕРґС‹
+}
 void print_vector(vector<bool>code) {
 	for (auto it = code.begin();it != code.end();it++) {
 		cout << *it;
 	}
 	cout << endl;
 }
-//Р¤СѓРЅРєС†РёСЏ РІС‹РІРѕРґРё СЃРёРјРІРѕР»-РєРѕРґ
+
 void print_table(map<char, vector<bool>>& buff) {
 	for (auto it = buff.begin(); it != buff.end(); it++)
 	{
@@ -79,115 +75,120 @@ void print_table(map<char, vector<bool>>& buff) {
 	}
 }
 
-//Р¤СѓРЅРєС†РёСЏ РІС‹РІРѕРґРёС‚ РєРѕСЌС„ СЃР¶Р°С‚РёСЏ
-void compressValue(const char* input_text = "Text.txt", const char* output_text = "Cipher.txt")
-{
-	long long file_size = 0;
-	long long compress_size = 0;
-
-	struct stat s1 {};
-	struct stat s2 {};
-
-	if (!stat(input_text, &s1)) {
-		file_size = s1.st_size;
-	}
-	else {
-		perror("STAT ERROR ");
-	}
-	if (!stat(output_text, &s2)) {
-		compress_size = s2.st_size;
-	}
-	else {
-		perror("STAT ERROR ");
-	}
-
-	cout << "\nCompress value is:" << (compress_size + 0.0) / file_size << "\n";
-}
 
 int main()
 {
-	/*РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»*/
-	ifstream Text("Text.txt", ios::out );
-	if (!Text.is_open()) { cout << "error"; return 0; }
-	map<char, int> m;
-	//СЃС‡РёС‚С‹РІР°РµРј СЃРёРјРІРѕР»Р° РїРѕРєР° РЅРµ РєРѕРЅРµС†
-	//СЃС‡РёС‚Р°РµРј С‡Р°СЃС‚РѕС‚С‹
-	unsigned char lett;
-	while (!Text.eof())
+	const char* Cipher = "Cipher.txt";
+	const char* PlainText = "PlainText.txt";
+	const char* Text = "Text.txt";
+	FILE* input = fopen(Cipher, "rb");
+	if (!input)
 	{
-		lett = Text.get();
-		if (!Text.eof()) 
-		{
-			m[lett]++;
-		}
+		puts("HuffmanDecoder ERROR: Have not found input text\n");
+		exit(1);
 	}
 
-	//СЃРѕР·РґР°СЋ СЃРїРёСЃРѕРє СѓРєР°Р·Р°С‚РµР»РµР№
+	unsigned char key;
+	map<char, int> frequency;
+	unsigned char i = 0;
+	unsigned char j = 0;
+
+	//кол-во уникальных символов
+	if (input != NULL) 
+		j = fgetc(input);
+
+	//создаю мапу с частотами из шапки
+	for(;i!=j;i++)
+	{
+		key = fgetc(input);
+		frequency[key] = fgetc(input);
+	}
+	
+	//вывожу мапу
+	for (auto it = frequency.begin(); it != frequency.end(); it++)
+				cout << it->first << " - " << it->second << endl;
+		
+
+	//создаю список указателей
 	list<Node*> tmp;
-	//РёСЃРїРѕР»СЊР·СѓСЏ РёРЅС‚РµСЂР°С‚РѕСЂ СЃРѕР·РґР°СЋ СѓР·Р»С‹ РїРѕ РјР°РїСѓ
-	for (map<char, int>::iterator itr = m.begin(); itr != m.end(); ++itr)
+	//используя интератор создаю узлы по мапу
+	for (map<char, int>::iterator itr = frequency.begin(); itr != frequency.end(); ++itr)
 	{
-		Node* p = new Node;//РЅРѕРІС‹Р№ СѓР·РµР»
-		p->s = itr->first;//СЃРёРјРІРѕР»
-		p->n = itr->second;//РµРіРѕ С‡Р°СЃС‚РѕС‚Р°
-		tmp.push_back(p);//СѓРєР°Р·Р°С‚РµР»СЊ РЅР° СѓР·РµР»
+		Node* p = new Node;//новый узел
+		p->s = itr->first;//символ
+		p->n = itr->second;//его частота
+		tmp.push_back(p);//указатель на узел
 	}
 
-	/*СЃРѕР·РґР°РµРј РґРµСЂРµРІРѕ РїРѕРєР° РЅРµ РѕСЃС‚Р°РЅРµС‚СЃСЏ 1 СЃРёРјРІРѕР» РІ СЃРїРёСЃРєРµ*/
+	/*создаем дерево пока не останется 1 символ в списке*/
 	while (tmp.size() != 1)
-	{// СЃРѕСЂС‚РёСЂСѓРµРј РїРѕ С‡Р°СЃС‚РѕС‚Р°Рј СЃРїРёСЃРѕРє
+	{// сортируем по частотам список
 		tmp.sort(ListSort());
-		//Р·Р°РїРёСЃС‹РІР°РµРј РІ СѓРєР°Р·Р°С‚РµР»СЊ Р»РµРІС‹Р№ СЌР»РµРјРµРЅС‚
+		//записываем в указатель левый элемент
 		Node* L = tmp.front();
-		tmp.pop_front();//СѓРґР°Р»СЏРµРј
+		tmp.pop_front();//удаляем
 		Node* R = tmp.front();
 		tmp.pop_front();
-		//РЅРѕРІС‹Р№ СѓР·РµР» СЃ РїРѕС‚РѕРјРєР°РјРё Р»РµРІС‹Р№ РїСЂР°РІС‹Р№
+		//новый узел с потомками левый правый
 		Node* parent = new Node(L, R);
-		//Р·Р°РЅРѕСЃРёРј РЅРѕРІС‹Р№ СѓР·РµР» РІ СЃРїРёСЃРѕРє
+		//заносим новый узел в список
 		tmp.push_back(parent);
 	}
-	//Р·Р°РЅРѕСЃРёРј РєРѕСЂРµРЅСЊ РґРµСЂРµРІР°
-	Node* root = tmp.front();   
+	//заносим корень дерева
+	Node* root = tmp.front();
 	BuildTable(root, symbol);
-	
-	// РїРµСЂРµРјРµС‰Р°РµРј СѓРєР°Р·Р°С‚РµР»СЊ СЃРЅРѕРІР° РІ РЅР°С‡Р°Р»Рѕ С„Р°Р№Р»Р°
-	Text.clear(); Text.seekg(0); 
-
-	ofstream Cipher("Cipher.txt", ios::out | ios::binary);
-	if (!Cipher.is_open()) { cout << "error"; return 0; }
-	//РєРѕР» РІРѕ СѓРЅРёРєР°Р»СЊРЅС‹С… СЃРёРјРІРѕР»РѕРІ
-	char count_letters = m.size();
-	Cipher.put(count_letters);
-	
-	//РІС‹РІРѕРґРёРј С€Р°РїРєСѓ РІ Р·Р°С€РёС„СЂРѕРІР°РЅРЅС‹Р№ С„Р°Р№Р»
-	for (map<char, int>::iterator itr = m.begin(); itr != m.end(); ++itr)
-	{
-		Cipher.put(itr->first);//СЃРёРјРІРѕР»
-		Cipher.put(itr->second);//РµРіРѕ С‡Р°СЃС‚РѕС‚Р°
-	}
-
-	int count = 0; char buf = 0;
-	Text.clear(); Text.seekg(0);
-	//Р’С‹РІРѕР¶Сѓ РєРѕРґС‹ СЃРёРјРІРѕР»РѕРІ РїРѕ 8
-	while (!Text.eof())
-	{
-		char c = Text.get();
-		//Р±РµСЂРµРј РєРѕРґ СЃРёРјРІРѕР»Р°
-		vector<bool> x = symbol[c];
-		for (int n = 0; n < x.size(); n++)
-		{//Р·Р°РЅСЃРёРј РїРѕ 8
-			buf = buf | x[n] << (7 - count);
-			count++;
-			if (count == 8) { count = 0;   Cipher << buf; buf = 0; }
-		}
-	}
-	if (buf) Cipher<<(buf);
-
-	Cipher.seekp(0);
-	compressValue();	
 	print_table(symbol);
-	Cipher.close();
-	Text.close();
+
+	FILE* output = fopen(PlainText, "wb+");
+	if (!output)
+	{
+		puts("HuffmanDecoder ERROR: Have not found input text\n");
+		exit(1);
+	}
+
+	Node* p = root;
+	unsigned char count = 0;
+	char byte;
+	byte = fgetc(input);
+	
+	//кол-во нужных битов для раскодировки
+	unsigned long long len = root->n;
+	
+	while (byte!=EOF&&len>0)
+	{
+		//идем по строке битов
+		bool b = byte & (1 << (7 - count));
+		//идем по дереву
+		if (b) 
+			p = p->right; 
+		else p = p->left;
+		//выводим лист(символ)
+		if (p->left == NULL && p->right == NULL) 
+		{
+			fputc(p->s, output);
+			p = root;len--;
+		}
+		count++;
+		if (count == 8) 
+		{ count = 0; byte = fgetc(input); }
+	}
+	fseek(output,0, SEEK_SET);
+	FILE* check1 = fopen(PlainText, "r");
+	FILE* check2 = fopen(Text, "r");
+	char ck1, ck2;
+	while (!feof(check1) && !feof(check2))
+	{
+		ck1 = fgetc(check1);
+		ck2 = fgetc(check2);
+		if (ck1 != ck2)
+		{
+			puts("Files not equal\n");
+			
+		}
+		
+	}
+	puts("Files are equal");
+	fclose(input);
+	fclose(output);
 	return 0;
 }
